@@ -793,6 +793,198 @@ $("#btn-logout").onclick = async () => {
   location.href = "/";
 };
 
+/* ---------- Xem ảnh phóng to ---------- */
+// Bấm ảnh trong nội dung để mở. Cuộn chuột, chụm hai ngón hoặc nhấn đúp vào ảnh để phóng to; kéo để di chuyển;
+// ←/→ hoặc vuốt ngang để chuyển ảnh; Esc để đóng. Tỉ lệ s = 1 nghĩa là ảnh vừa khung.
+const lightbox = (() => {
+  const SVG = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  let box = null, stage, pic, cap, count, pct, btnPrev, btnNext, btnOut, btnIn;
+  let list = [], at = 0, back = null;
+  let nw = 0, nh = 0, fit = 1, s = 1, tx = 0, ty = 0;
+  const ptrs = new Map();
+  let gesture = null, lastTap = null;
+
+  function build() {
+    box = el("div", "lightbox");
+    box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", "Xem ảnh");
+    box.innerHTML =
+      `<div class="lb-bar"><span class="lb-count"></span>
+        <button class="lb-btn" data-act="out" title="Thu nhỏ (−)" aria-label="Thu nhỏ">${SVG("M5 12h14")}</button>
+        <button class="lb-btn lb-pct" data-act="fit" title="Vừa khung (0)" aria-label="Vừa khung"></button>
+        <button class="lb-btn" data-act="in" title="Phóng to (+)" aria-label="Phóng to">${SVG("M12 5v14M5 12h14")}</button>
+        <button class="lb-btn" data-act="close" title="Đóng (Esc)" aria-label="Đóng">${SVG("M6 6l12 12M18 6L6 18")}</button></div>
+      <div class="lb-stage"><img class="lb-img" alt="" draggable="false">
+        <button class="lb-btn lb-nav lb-prev" data-act="prev" title="Ảnh trước (←)" aria-label="Ảnh trước">${SVG("M15 6l-6 6 6 6")}</button>
+        <button class="lb-btn lb-nav lb-next" data-act="next" title="Ảnh sau (→)" aria-label="Ảnh sau">${SVG("M9 6l6 6-6 6")}</button></div>
+      <div class="lb-foot"><div class="lb-cap"></div>
+        <div class="lb-hint">Cuộn chuột hoặc chụm hai ngón để phóng to, kéo để di chuyển, nhấn đúp để phóng nhanh</div></div>`;
+    stage = box.querySelector(".lb-stage"); pic = box.querySelector(".lb-img");
+    cap = box.querySelector(".lb-cap"); count = box.querySelector(".lb-count"); pct = box.querySelector(".lb-pct");
+    btnPrev = box.querySelector(".lb-prev"); btnNext = box.querySelector(".lb-next");
+    btnOut = box.querySelector('[data-act="out"]'); btnIn = box.querySelector('[data-act="in"]');
+    document.body.append(box);
+
+    box.addEventListener("click", e => {
+      const b = e.target.closest("[data-act]"); if (!b) return;
+      const act = b.dataset.act;
+      if (act === "close") close();
+      else if (act === "prev") show(at - 1);
+      else if (act === "next") show(at + 1);
+      else if (act === "fit") reset(true);
+      else zoomTo(s * (act === "in" ? 1.5 : 1 / 1.5), null, true);
+    });
+    document.addEventListener("keydown", e => { if (box.classList.contains("open")) onKey(e); });
+    pic.addEventListener("load", () => { nw = pic.naturalWidth; nh = pic.naturalHeight; reset(false); pic.style.visibility = ""; });
+    stage.addEventListener("wheel", e => {
+      e.preventDefault();
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+      zoomTo(s * Math.exp(-dy * 0.002), { x: e.clientX, y: e.clientY }, false);
+    }, { passive: false });
+    stage.addEventListener("pointerdown", onDown);
+    stage.addEventListener("pointermove", onMove);
+    stage.addEventListener("pointerup", onUp);
+    stage.addEventListener("pointercancel", onUp);
+    window.addEventListener("resize", () => { if (box.classList.contains("open")) { layout(); clamp(); apply(false); } });
+  }
+
+  const maxS = () => Math.max(4, 3 / fit);
+  function center() { const r = stage.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+  function layout() {
+    if (!nw || !nh) return;
+    fit = Math.min(1, (stage.clientWidth - 32) / nw, (stage.clientHeight - 32) / nh);
+    const w = nw * fit, h = nh * fit;
+    pic.style.width = w + "px"; pic.style.height = h + "px";
+    pic.style.marginLeft = -w / 2 + "px"; pic.style.marginTop = -h / 2 + "px";
+  }
+  function clamp() {
+    const lx = Math.max(0, (nw * fit * s - stage.clientWidth) / 2), ly = Math.max(0, (nh * fit * s - stage.clientHeight) / 2);
+    tx = Math.min(lx, Math.max(-lx, tx)); ty = Math.min(ly, Math.max(-ly, ty));
+  }
+  function apply(animate) {
+    pic.classList.toggle("animate", !!animate);
+    pic.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+    box.classList.toggle("zoomed", s > 1.01);
+    pct.textContent = Math.round(fit * s * 100) + "%";
+    btnOut.disabled = s <= 1.001; btnIn.disabled = s >= maxS() - 0.001;
+  }
+  function reset(animate) { layout(); s = 1; tx = 0; ty = 0; apply(animate); }
+  // Phóng tới tỉ lệ ns, giữ nguyên điểm ảnh nằm dưới toạ độ màn hình p (mặc định là giữa khung)
+  function zoomTo(ns, p, animate) {
+    ns = Math.min(maxS(), Math.max(1, ns));
+    const c = center(), qx = p ? p.x - c.x : 0, qy = p ? p.y - c.y : 0;
+    tx = qx - (qx - tx) * ns / s; ty = qy - (qy - ty) * ns / s; s = ns;
+    clamp(); apply(animate);
+  }
+
+  function onDown(e) {
+    if (e.target.closest(".lb-nav")) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    stage.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const pts = [...ptrs.values()];
+    if (pts.length === 1) gesture = { kind: "pan", x0: e.clientX, y0: e.clientY, tx0: tx, ty0: ty, moved: false, onImg: e.target === pic };
+    else if (pts.length === 2) {
+      const [a, b] = pts;
+      gesture = { kind: "pinch", d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, s0: s, tx0: tx, ty0: ty, m0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, moved: true };
+    }
+    box.classList.add("dragging");
+  }
+  function onMove(e) {
+    if (!ptrs.has(e.pointerId) || !gesture) return;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (gesture.kind === "pan") {
+      const dx = e.clientX - gesture.x0, dy = e.clientY - gesture.y0;
+      if (Math.abs(dx) + Math.abs(dy) > 4) gesture.moved = true;
+      if (s > 1.01) { tx = gesture.tx0 + dx; ty = gesture.ty0 + dy; clamp(); apply(false); }
+    } else if (ptrs.size >= 2) {
+      const [a, b] = [...ptrs.values()];
+      const ns = Math.min(maxS(), Math.max(1, gesture.s0 * Math.hypot(a.x - b.x, a.y - b.y) / gesture.d0));
+      const c = center(), m = { x: (a.x + b.x) / 2 - c.x, y: (a.y + b.y) / 2 - c.y }, m0 = { x: gesture.m0.x - c.x, y: gesture.m0.y - c.y };
+      tx = m.x - (m0.x - gesture.tx0) * ns / gesture.s0; ty = m.y - (m0.y - gesture.ty0) * ns / gesture.s0; s = ns;
+      clamp(); apply(false);
+    }
+  }
+  function onUp(e) {
+    if (!ptrs.delete(e.pointerId)) return;
+    const g = gesture;
+    if (ptrs.size > 0) {
+      // Còn một ngón sau khi chụm: tiếp tục kéo từ vị trí hiện tại
+      const p = [...ptrs.values()][0];
+      gesture = { kind: "pan", x0: p.x, y0: p.y, tx0: tx, ty0: ty, moved: true };
+      return;
+    }
+    gesture = null; box.classList.remove("dragging");
+    if (!g || g.kind !== "pan") return;
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+    if (s <= 1.01 && e.pointerType !== "mouse" && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) show(at + (dx < 0 ? 1 : -1));
+    else if (g.moved || e.type !== "pointerup") return;
+    else if (!g.onImg) close();
+    else if (lastTap && e.timeStamp - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
+      // Nhấn đúp: đang phóng thì về vừa khung, chưa phóng thì phóng tới cỡ thật (ít nhất gấp đôi) quanh điểm nhấn
+      lastTap = null;
+      if (s > 1.01) reset(true);
+      else zoomTo(Math.max(2, 1 / fit), { x: e.clientX, y: e.clientY }, true);
+    } else lastTap = { t: e.timeStamp, x: e.clientX, y: e.clientY };
+  }
+
+  function onKey(e) {
+    const k = e.key;
+    if (k === "Escape") close();
+    else if (k === "ArrowLeft") show(at - 1);
+    else if (k === "ArrowRight") show(at + 1);
+    else if (k === "+" || k === "=") zoomTo(s * 1.5, null, true);
+    else if (k === "-" || k === "_") zoomTo(s / 1.5, null, true);
+    else if (k === "0") reset(true);
+    else if (k === "Tab") {
+      // Giữ focus trong khung xem ảnh
+      const f = [...box.querySelectorAll("button:not([disabled])")].filter(b => b.offsetParent !== null);
+      const i = f.indexOf(document.activeElement);
+      e.preventDefault();
+      f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+      return;
+    } else return;
+    e.preventDefault();
+  }
+
+  function show(i) {
+    if (i < 0 || i >= list.length) return;
+    at = i;
+    const src = list[i];
+    nw = nh = 0; s = 1; tx = ty = 0; lastTap = null;
+    pic.style.visibility = "hidden";
+    pic.alt = src.alt || "";
+    pic.src = src.currentSrc || src.src;
+    if (pic.complete && pic.naturalWidth) { nw = pic.naturalWidth; nh = pic.naturalHeight; reset(false); pic.style.visibility = ""; }
+    cap.textContent = src.alt || "";
+    count.textContent = list.length > 1 ? `${i + 1} / ${list.length}` : "";
+    btnPrev.classList.toggle("hide", list.length < 2); btnNext.classList.toggle("hide", list.length < 2);
+    btnPrev.disabled = i === 0; btnNext.disabled = i === list.length - 1;
+  }
+  function open(imgs, i) {
+    if (!box) build();
+    list = imgs; back = document.activeElement;
+    box.classList.add("open"); document.body.classList.add("lb-open");
+    show(Math.max(0, i));
+    box.querySelector('[data-act="close"]').focus();
+  }
+  function close() {
+    if (!box || !box.classList.contains("open")) return;
+    box.classList.remove("open", "zoomed", "dragging"); document.body.classList.remove("lb-open");
+    ptrs.clear(); gesture = null;
+    if (back && back.focus) back.focus();
+  }
+  return { open };
+})();
+// Biểu tượng nhỏ chèn giữa dòng và ảnh nằm trong liên kết không mở khung xem
+const zoomable = im => !im.closest("a") && im.getBoundingClientRect().width >= 48;
+document.addEventListener("click", e => {
+  const im = e.target.closest(".reader .prose img");
+  if (!im || !zoomable(im)) return;
+  e.preventDefault();
+  const imgs = [...im.closest(".prose").querySelectorAll("img")].filter(zoomable);
+  lightbox.open(imgs, imgs.indexOf(im));
+});
+
 /* ---------- Khởi động ---------- */
 function pickActive() {
   const h = decodeURIComponent(location.hash.slice(1));
