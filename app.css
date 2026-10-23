@@ -336,3 +336,57 @@ a.lib-item:hover .lib-name{color:var(--accent)}
 .pages-result{flex-basis:100%;margin:0;font-size:14px;color:var(--tip)}
 .pages-result:empty{display:none}
 .pages-result.err{color:var(--warn)}
+
+/* ---------- Nhóm, ngôn ngữ, tìm kiếm ---------- */
+.lang-switch{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.lang-btn{height:32px;min-width:38px;padding:0 8px;border:0;background:var(--surface);cursor:pointer;font-size:12.5px;font-weight:600;color:var(--muted)}
+.lang-btn+.lang-btn{border-left:1px solid var(--line)}
+.lang-btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.lang-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;padding:1px 6px;border-radius:5px;background:var(--code-bg);color:var(--muted);vertical-align:middle}
+.doc-name .lang-tag{margin-left:8px}
+.dash-row .lib-name .lang-tag{order:-1}
+.alt-name{display:block;font-size:13px;font-weight:400;color:var(--muted);margin:2px 0 0}
+.dash-row .lib-name .alt-name{flex-basis:100%;margin:0}
+.head-acts{display:flex;gap:8px;flex-wrap:wrap}
+.lib-search{width:min(100%,22rem)}
+.dash-search{max-width:none;width:100%;margin:0 0 4px}
+.dash-bar{display:flex;gap:12px;align-items:center;margin-bottom:4px}
+.dash-bar .dash-search{flex:1;margin:0}
+.search-status{margin:8px 0 12px;font-size:14px;color:var(--muted)}
+.search-status:empty{display:none}
+.group-item .lib-name{font-size:20px}
+/* Kết quả tìm kiếm: mục khớp được đánh dấu, mục không khớp làm mờ nhẹ */
+.lib-list>li.hit{background:var(--accent-soft);border-radius:10px;box-shadow:inset 3px 0 0 var(--accent)}
+.lib-list>li.dim{opacity:.5}
+.hit-badge{display:inline-block;margin-left:10px;font-size:12px;font-weight:600;color:var(--accent-ink);background:var(--accent);padding:2px 8px;border-radius:999px;vertical-align:middle;white-space:nowrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.seg-btn{height:36px;padding:0 12px;border:0;background:var(--surface);cursor:pointer;font-size:13.5px;font-weight:500;color:var(--muted)}
+.seg-btn+.seg-btn{border-left:1px solid var(--line)}
+.seg-btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+select.mini{height:28px;border:1px solid var(--line);border-radius:6px;padding:0 6px;background:var(--surface);font:inherit;font-size:13px;color:inherit;max-width:14rem}
+.btn.icon{width:36px;padding:0;justify-content:center}
+.lang-pick{border:1px solid var(--line);border-radius:8px;padding:6px 12px 10px;margin:0;display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:14px}
+.lang-pick legend{font-size:13.5px;font-weight:500;padding:0 4px}
+.create .lang-pick label.radio{display:inline-flex;align-items:center;gap:6px;font-weight:400;font-size:14px}
+.create .lang-pick input{height:auto}
+.form-hint{margin:-6px 0 0;font-size:13px;color:var(--muted)}
+@media (max-width:700px){
+  .lang-btn{min-width:32px;padding:0 6px}
+  .dash-bar{flex-direction:column;align-items:stretch}
+  .hit-badge{margin-left:0;margin-top:4px}
+}
+
+/* ---------- Cây nhóm ở trang đọc: Nhóm > Tài liệu > Chương ---------- */
+#toc-label{font-weight:600;color:var(--ink);font-size:13.5px;text-transform:uppercase;letter-spacing:.02em}
+.tree-doc{margin:2px 0}
+.tree-doc-btn{width:100%;display:flex;gap:8px;align-items:baseline;text-align:left;border:0;background:none;cursor:pointer;
+  padding:8px 10px;border-radius:8px;font-size:14.5px;font-weight:600;line-height:1.35;color:var(--ink)}
+.tree-doc-btn:hover{background:var(--paper)}
+.tree-doc-btn .t{overflow-wrap:anywhere;min-width:0}
+.tree-doc-btn .caret{flex:none;width:0;height:0;border-left:5px solid var(--muted);border-top:4px solid transparent;border-bottom:4px solid transparent;
+  transform:translateY(-1px);transition:transform .15s}
+.tree-doc.open>.tree-doc-btn .caret{transform:translateY(-1px) rotate(90deg)}
+.tree-doc.current>.tree-doc-btn{color:var(--accent)}
+.tree-ch{list-style:none;margin:0 0 6px 13px;padding:0 0 0 8px;border-left:1px solid var(--line)}
+.tree-ch .toc-item{font-size:14px;padding:6px 10px}
+.tree-ch .toc-sub{margin-left:28px}

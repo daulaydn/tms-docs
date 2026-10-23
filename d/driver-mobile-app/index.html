@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="hd-static" content="../../">
+<meta name="hd-route" content="reader:driver-mobile-app">
+<meta name="hd-site" content="Tài liệu hướng dẫn">
+<meta name="hd-site-en" content="Tài liệu hướng dẫn">
+<meta property="og:title" content="Driver mobile app | Tài liệu hướng dẫn">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Driver mobile app | Tài liệu hướng dẫn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../app.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232547D0'/%3E%3Cpath d='M9 9h9a5 5 0 0 1 5 5v9H14a5 5 0 0 1-5-5z' fill='%23fff'/%3E%3C/svg%3E">
+<script src="../../vendor/marked.min.js" defer></script>
+<script src="../../vendor/purify.min.js" defer></script>
+<script src="../../i18n.js" defer></script>
+<script src="../../app.js" defer></script>
+</head>
+<body>
+<section class="login" id="login">
+  <form id="login-form" novalidate>
+    <h1 data-i18n="loginTitle">Đăng nhập để soạn tài liệu</h1>
+    <p class="hint" data-i18n="loginHint">Trang này chỉ dành cho người soạn. Người đọc dùng địa chỉ gốc của website.</p>
+    <label><span data-i18n="username">Tên đăng nhập</span><input name="username" autocomplete="username" required></label>
+    <label><span data-i18n="password">Mật khẩu</span><input name="password" type="password" autocomplete="current-password" required></label>
+    <p class="err" id="login-err" role="alert"></p>
+    <button class="btn primary" type="submit" id="login-btn" data-i18n="login">Đăng nhập</button>
+    <a href="/" data-i18n="backToDocs">Về trang tài liệu</a>
+  </form>
+</section>
+
+<div class="app">
+  <header class="topbar">
+    <a class="btn ghost hide" id="btn-back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      <span class="lbl-long" id="btn-back-lbl" data-i18n="allDocs">Tất cả tài liệu</span>
+    </a>
+    <button class="btn ghost" id="btn-menu" aria-label="Mở mục lục" data-i18n-aria="openToc">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    </button>
+    <div class="doc-name" id="hdr-title" data-i18n="loading">Đang tải…</div>
+    <div class="lang-switch hide" id="lang-switch" role="group"></div>
+    <span class="save-state hide" id="save-state"></span>
+    <a class="btn hide" id="btn-to-admin" href="/admin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>
+      <span id="btn-to-admin-lbl" data-i18n="edit">Chỉnh sửa</span>
+    </a>
+    <a class="btn hide" id="btn-view-public" href="/" target="_blank" rel="noopener" data-i18n="viewPublished">Xem bản đã xuất bản</a>
+    <button class="btn hide" id="btn-mode"></button>
+    <button class="btn primary hide" id="btn-publish" data-i18n="publish">Xuất bản</button>
+    <button class="btn" id="btn-pdf">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>
+      <span><span class="lbl-long" data-i18n="exportPdfLong">Xuất </span>PDF</span>
+    </button>
+    <button class="btn ghost hide" id="btn-logout" title="Đăng xuất" aria-label="Đăng xuất" data-i18n-title="logout" data-i18n-aria="logout">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>
+    </button>
+  </header>
+  <div class="body">
+    <aside class="sidebar" id="sidebar" aria-label="Mục lục" data-i18n-aria="toc">
+      <input class="search" id="search" type="search" placeholder="Tìm trong tài liệu" aria-label="Tìm trong tài liệu">
+      <details class="meta-box hide" id="meta-box">
+        <summary data-i18n="docInfo">Thông tin tài liệu</summary>
+        <div class="fields">
+          <div class="field"><label for="f-title" data-i18n="docTitle">Tên tài liệu</label><input id="f-title"></div>
+          <div class="field"><label for="f-sub" data-i18n="docSubtitle">Mô tả ngắn</label><input id="f-sub"></div>
+          <div class="field"><label for="f-ver" data-i18n="docVersion">Phiên bản</label><input id="f-ver" placeholder="1.0"></div>
+        </div>
+      </details>
+      <div class="toc-label" id="toc-label">Các chương</div>
+      <ul class="toc" id="toc"></ul>
+      <button class="btn add-ch hide" id="btn-add" data-i18n="addChapter">+ Thêm chương</button>
+    </aside>
+    <main class="main" id="main">
+      <div id="banner-slot"></div>
+      <section class="list-view" id="list"></section>
+      <article class="reader" id="reader"><div class="loading" data-i18n="loadingDoc">Đang tải tài liệu…</div></article>
+      <section class="editor" id="editor">
+        <div class="ed-tabs" role="group" aria-label="Chế độ xem khi soạn" data-i18n-aria="editModes">
+          <button id="tab-write" aria-pressed="true" data-i18n="write">Soạn</button>
+          <button id="tab-preview" aria-pressed="false" data-i18n="preview">Xem trước</button>
+        </div>
+        <div class="ed-pane" id="ed-pane">
+          <input class="ed-title" id="ed-title" placeholder="Tên chương" aria-label="Tên chương" data-i18n-ph="chapterTitle" data-i18n-aria="chapterTitle">
+          <div class="toolbar" role="toolbar" aria-label="Định dạng" data-i18n-aria="formatting">
+            <button class="tool" data-t="h2" title="Tiêu đề mục" data-i18n-title="toolH2">H2</button>
+            <button class="tool" data-t="h3" title="Tiêu đề nhỏ" data-i18n-title="toolH3">H3</button>
+            <span class="tsep"></span>
+            <button class="tool" data-t="bold" title="Đậm" data-i18n-title="toolBold"><b>B</b></button>
+            <button class="tool" data-t="italic" title="Nghiêng" data-i18n-title="toolItalic"><i>I</i></button>
+            <button class="tool" data-t="code" title="Mã" data-i18n-title="toolCode">&lt;/&gt;</button>
+            <button class="tool" data-t="link" title="Liên kết" data-i18n-title="toolLink" data-i18n="toolLink">Liên kết</button>
+            <span class="tsep"></span>
+            <button class="tool" data-t="ul" title="Danh sách" data-i18n-title="toolUlTitle" data-i18n="toolUl">• Danh sách</button>
+            <button class="tool" data-t="ol" title="Các bước" data-i18n-title="toolOlTitle" data-i18n="toolOl">1. Bước</button>
+            <button class="tool" data-t="table" title="Bảng" data-i18n-title="toolTable" data-i18n="toolTable">Bảng</button>
+            <span class="tsep"></span>
+            <button class="tool" data-t="note" title="Khung lưu ý" data-i18n-title="toolNoteTitle" data-i18n="toolNote">Lưu ý</button>
+            <button class="tool" data-t="tip" title="Khung mẹo" data-i18n-title="toolTipTitle" data-i18n="toolTip">Mẹo</button>
+            <button class="tool" data-t="warning" title="Khung cảnh báo" data-i18n-title="toolWarningTitle" data-i18n="toolWarning">Cảnh báo</button>
+            <span class="tsep"></span>
+            <button class="tool" data-t="image" title="Chèn ảnh" data-i18n-title="toolImageTitle" data-i18n="toolImage">Ảnh</button>
+          </div>
+          <textarea class="ed-body" id="ed-body" spellcheck="false" aria-label="Nội dung chương (Markdown)" data-i18n-aria="bodyLabel"></textarea>
+          <div class="ed-foot"><span data-i18n="edFoot">Viết bằng Markdown. Thay đổi được tự lưu vào bản nháp.</span><span><span data-i18n="chapterLink">Liên kết tới chương này: </span><code id="ed-link"></code></span></div>
+        </div>
+        <div class="pv-pane" id="pv-pane"><article class="reader" id="preview"></article></div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="scrim" id="scrim"></div>
+<input type="file" id="file-img" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
